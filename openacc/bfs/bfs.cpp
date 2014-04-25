@@ -136,7 +136,7 @@ void BFSGraph( int argc, char** argv)
 
     int k=0;
     
-    char stop;
+    int stop;
     do
       {
 	//if no thread changes this value then the loop stops
