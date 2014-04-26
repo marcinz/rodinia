@@ -3,6 +3,32 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+
+#include <time.h>
+#include <sys/time.h>
+
+typedef double time_type;
+
+inline time_type get_time()
+{
+#if 0
+  return MPI_Wtime();
+#endif
+  timeval tp;
+  gettimeofday(&tp, 0);
+  return tp.tv_sec + tp.tv_usec / 1000000.0;
+}
+
+std::string print_time(time_type t)
+{
+  std::ostringstream out;
+  out << std::setiosflags(std::ios::fixed) << std::setprecision(2) << t;
+  return out.str();
+}
+
 #define TRANSFER_GRAPH_NODE 1
 #define TRANSFER_GRAPH_EDGE 2
 
@@ -100,6 +126,8 @@ void BFSGraph( int argc, char** argv)
   if(fp)
     fclose(fp); 
 
+  time_type start_time;
+
 #pragma acc data create(h_updating_graph_mask[0:no_of_nodes])		\
   create(h_graph_mask[0:no_of_nodes],h_graph_visited[0:no_of_nodes])	\
   create(h_graph_nodes[0:no_of_nodes], h_graph_edges[0:edge_list_size]) \
@@ -130,11 +158,14 @@ void BFSGraph( int argc, char** argv)
     }
 	
     // finish transfer node and edge to target
-#pragma acc wait(TRANSFER_GRAPH_NODE, TRANSFER_GRAPH_EDGE)
+#pragma acc wait(TRANSFER_GRAPH_NODE)
+#pragma acc wait(TRANSFER_GRAPH_EDGE)
 
     printf("Start traversing the tree\n");
 
     int k=0;
+
+    start_time = get_time();
     
     int stop;
     do
@@ -174,6 +205,10 @@ void BFSGraph( int argc, char** argv)
     while(stop);
 
   } /* end acc data */
+
+  time_type end_time = get_time();
+  
+  std::cout << "BFS time:" << print_time(end_time - start_time) << std::endl;
 
   //Store the result into a file
   FILE *fpo = fopen("result.txt","w");
